@@ -13,10 +13,10 @@ contract DAO is AccessControl{
     struct ProposalToken{
         address _chairPerson;
         bool _activeProposal;
-        string description_;
-        address reciption_;
+        string _description;
+        address _reciption;
         bytes _data;
-        uint beginTime;
+        uint _beginTime;
     }
 
     struct VoteToken{
@@ -42,12 +42,12 @@ contract DAO is AccessControl{
     
     bytes32 public constant CHAIR_ROLE = keccak256("CHAIR_ROLE");
 
-    constructor(address _chairPerson, address _voteToken, uint _minimumQuorum, uint _debatingPeriodDurtion){
-        _setupRole(CHAIR_ROLE, _chairPerson);
-        chairPerson = _chairPerson;
-        voteToken = _voteToken;
-        minimumQuorum = _minimumQuorum;
-        debatingPeriodDurtion = _debatingPeriodDurtion;
+    constructor(address chairPerson_, address voteToken_, uint minimumQuorum_, uint debatingPeriodDurtion_){
+        _setupRole(CHAIR_ROLE, chairPerson_);
+        chairPerson = chairPerson_;
+        voteToken = voteToken_;
+        minimumQuorum = minimumQuorum_;
+        debatingPeriodDurtion = debatingPeriodDurtion_;
     }
 
     function deposit(uint256 amount) public {
@@ -60,10 +60,10 @@ contract DAO is AccessControl{
         return AmountVote[reception]; 
     }    
 
-    function addProposal(bytes memory _callData, address _reciption, string memory _description) public { 
+    function addProposal(bytes memory callData_, address reciption_, string memory description_) public { 
         require(hasRole(CHAIR_ROLE, msg.sender), "DAO: Caller is not a chairman");
         Counters.increment(idProposal);
-        Proposal[idProposal.current()] = ProposalToken({_chairPerson: chairPerson, _activeProposal: true, description_:_description, reciption_: _reciption, _data: _callData, beginTime: block.timestamp});
+        Proposal[idProposal.current()] = ProposalToken({_chairPerson: msg.sender, _activeProposal: true, _description:description_, _reciption: reciption_, _data: callData_, _beginTime: block.timestamp});
     }
 
     function vote(uint id, bool supportAgainst, uint amount) public {
@@ -95,7 +95,7 @@ contract DAO is AccessControl{
         require(againstCount + supportCount >= minimumQuorum, "DAO: The count of tokens is less than the minimum quorum");
 
         if (supportCount > againstCount) {
-            (bool success, ) = Proposal[id].reciption_.call{value: 0}(Proposal[id]._data);
+            (bool success, ) = Proposal[id]._reciption.call{value: 0}(Proposal[id]._data);
         }
 
         Proposal[id]._activeProposal = false;

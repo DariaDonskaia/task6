@@ -26,10 +26,7 @@ contract ITokenERC20 {
     );
 
     modifier onlyOwner() {
-        require(
-            msg.sender == _owner,
-            "this feature is only available to the owner of the contract"
-        );
+        require( msg.sender == _owner, "this feature is only available to the owner of the contract");
         _;
     }
 
@@ -42,20 +39,14 @@ contract ITokenERC20 {
     }
 
     function transfer(address _to, uint256 _amount) external returns (bool) {
-        require(
-            _balances[msg.sender] >= _amount,
-            "transfer amount must be equal or less than your balance"
-        );
+        require( _balances[msg.sender] >= _amount, "transfer amount must be equal or less than your balance");
         _balances[msg.sender] -= _amount;
         _balances[_to] += _amount;
         emit Transfer(msg.sender, _to, _amount);
         return true;
     }
 
-    function allowance(address _from, address _to)
-        external
-        view
-        returns (uint256)
+    function allowance(address _from, address _to) external view returns (uint256)
     {
         return _allowances[_from][_to];
     }
@@ -66,16 +57,9 @@ contract ITokenERC20 {
         return true;
     }
 
-    function transferFrom(
-        address _from,
-        address _to,
-        uint256 _amount
-    ) external returns (bool) {
+    function transferFrom(address _from,  address _to,  uint256 _amount) external returns (bool) {
         uint256 currentAllowance = _allowances[_from][msg.sender];
-        require(
-            currentAllowance >= _amount,
-            "transferred amount exceeds the allowed"
-        );
+        require(currentAllowance >= _amount, "transferred amount exceeds the allowed");
         _balances[_from] -= _amount;
         _balances[_to] += _amount;
         _allowances[_from][msg.sender] = currentAllowance - _amount;
@@ -83,46 +67,30 @@ contract ITokenERC20 {
         return true;
     }
 
-    function increaseAllowance(address _to, uint256 _addedAmount)
-        external
-        returns (bool)
+    function increaseAllowance(address _to, uint256 _addedAmount) external returns (bool)
     {
         approve(_to, _allowances[msg.sender][_to] + _addedAmount);
         return true;
     }
 
-    function decreaseAllowance(address _to, uint256 _subtractedAmount)
-        external
-        returns (bool)
+    function decreaseAllowance(address _to, uint256 _subtractedAmount) external returns (bool)
     {
         uint256 currentAllowance = _allowances[msg.sender][_to];
-        require(
-            currentAllowance >= _subtractedAmount,
-            "the subtracted value must be less than the current Allowance"
-        );
+        require( currentAllowance >= _subtractedAmount, "the subtracted value must be less than the current Allowance");
         approve(_to, currentAllowance - _subtractedAmount);
         return true;
     }
 
-    function mint(address _address, uint256 _amount)
-        external
-        onlyOwner
-        returns (bool)
+    function mint(address _address, uint256 _amount) external onlyOwner returns (bool)
     {
         _balances[_address] += _amount;
         _totalSupply += _amount;
         return true;
     }
 
-    function burn(address _address, uint256 _amount)
-        external
-        onlyOwner
-        returns (bool)
+    function burn(address _address, uint256 _amount) external onlyOwner returns (bool)
     {
-        require(
-            _balances[_address] >= _amount,
-            "the withdrawn amount must be less than the balance of the specified address"
-        );
+        require(_balances[_address] >= _amount, "the withdrawn amount must be less than the balance of the specified address");
         _balances[_address] -= _amount;
         _totalSupply -= _amount;
         return true;
