@@ -3,7 +3,18 @@ const { ethers, waffle, network} = require("hardhat");
 const provider = waffle.provider;
 const { parseEther } = require("ethers/lib/utils");
 
+async function getCurrentTime(){
+  return (
+    await ethers.provider.getBlock(await ethers.provider.getBlockNumber())
+  ).timestamp;
+}
 
+async function evm_increaseTime(seconds){
+  await network.provider.send("evm_increaseTime", [seconds]);
+  await network.provider.send("evm_mine");
+}
+
+const sevenDays = 7 * 24 * 60 * 60;
 describe("DAO contract", function () {
 
     beforeEach(async function () {
@@ -17,7 +28,7 @@ describe("DAO contract", function () {
 
       Test = await test.connect(owner).deploy(10);
       myERC20 = await erc20.connect(owner).deploy(1000);
-      myDAO = await dao.connect(addr2).deploy(chairman.address, myERC20.address, 1, 2); 
+      myDAO = await dao.connect(addr2).deploy(chairman.address, myERC20.address, 1, 12); 
       await myERC20.connect(owner).mint(addr2.address, 100);   
 
     });
@@ -106,11 +117,9 @@ describe("DAO contract", function () {
         await myDAO.connect(addr2).deposit(30);
          
         await myDAO.connect(addr2).vote(1, false, 10 ); 
-           
-        //await ethers.provider.send("evm_setNextBlockTimestamp", [1648890915*2])
-        //await ethers.provider.send("evm_mine")
+        current_time = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());   
+        await ethers.provider.send("evm_increaseTime", [current_time.timestamp + 10]);
         await myDAO.connect(addr2).finishProposal(1);
-
         await expect(myDAO.connect(addr2).finishProposal(1)).to.be.revertedWith("DAO: Proposal finished");
     });
   });

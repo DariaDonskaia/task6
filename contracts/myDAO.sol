@@ -13,10 +13,12 @@ contract DAO is AccessControl{
     struct ProposalToken{
         address _chairPerson;
         bool _activeProposal;
-        string _description;
-        address _reciption;
-        bytes _data;
         uint _beginTime;
+        uint _agree;
+        uint _nagree;
+        address _reciption;
+        string _description;
+        bytes _data;
     }
 
     struct VoteToken{
@@ -28,12 +30,15 @@ contract DAO is AccessControl{
     }
 
     Counters.Counter idProposal;
-    Counters.Counter idVote;
 
     VoteToken[] public votes;
     mapping(address => VoteToken) public Vote;
     mapping(uint => ProposalToken) public Proposal;
     mapping(address => uint256) public AmountVote;
+
+    event AddProposalEvent(bytes callData_, address reciption_, string description_); 
+    event VoteEvent(address from, uint id, bool supportAgainst, uint amount);
+    event FinishProposalEvent(address from, uint id);
 
     address public chairPerson;
     address private voteToken;
@@ -63,7 +68,8 @@ contract DAO is AccessControl{
     function addProposal(bytes memory callData_, address reciption_, string memory description_) public { 
         require(hasRole(CHAIR_ROLE, msg.sender), "DAO: Caller is not a chairman");
         Counters.increment(idProposal);
-        Proposal[idProposal.current()] = ProposalToken({_chairPerson: msg.sender, _activeProposal: true, _description:description_, _reciption: reciption_, _data: callData_, _beginTime: block.timestamp});
+        Proposal[idProposal.current()] = ProposalToken({_chairPerson: msg.sender, _activeProposal: true, _agree:0, _nagree:0, _description:description_, _reciption: reciption_, _data: callData_, _beginTime: block.timestamp});
+        emit AddProposalEvent(callData_, reciption_, description_);
     }
 
     function vote(uint id, bool supportAgainst, uint amount) public {
@@ -71,34 +77,27 @@ contract DAO is AccessControl{
         require(Vote[msg.sender]._idProposal != id  , "DAO: You are vote");
         require(Proposal[id]._activeProposal == true, "DAO: Proposal finished");
         votes.push(VoteToken({_idProposal: id, _votePerson: msg.sender, _supportAgainst: supportAgainst, _amount: amount, _lastTimeVote: block.timestamp }));
+        if (supportAgainst){
+            Proposal[id]._agree +=1;   
+        }
+        else{
+            Proposal[id]._nagree +=1;  
+        }
+        emit VoteEvent(msg.sender, id, supportAgainst, amount);
     }
 
     function finishProposal(uint id) public {
         require(Proposal[id]._activeProposal == true, "DAO: Proposal finished");
-        //require(block.timestamp < Proposal[id].beginTime + debatingPeriodDurtion, "DAO: Proposal doesn't finish");
+        require(block.timestamp > Proposal[id]._beginTime + debatingPeriodDurtion, "DAO: Proposal doesn't finish"); 
 
-        uint supportCount = 0;
-        uint againstCount = 0;
-        
-        //Maybe change this code fragment?
-        for (uint i = 0; i < votes.length; i++) {
-            if (votes[i]._idProposal == id) {
-                if (votes[i]._supportAgainst == false) {
-                    againstCount += 1;
-                }
-                else{
-                    supportCount +=1;
-                }
-            }
-        }
+        require(Proposal[id]._nagree + Proposal[id]._agree >= minimumQuorum, "DAO: The count of tokens is less than the minimum quorum");
 
-        require(againstCount + supportCount >= minimumQuorum, "DAO: The count of tokens is less than the minimum quorum");
-
-        if (supportCount > againstCount) {
+        if (Proposal[id]._agree > Proposal[id]._nagree) {
             (bool success, ) = Proposal[id]._reciption.call{value: 0}(Proposal[id]._data);
         }
 
         Proposal[id]._activeProposal = false;
+        emit FinishProposalEvent(msg.sender, id);
     }
 
     function withdraw() public {
